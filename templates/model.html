@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Price Prediction</title>
+  <style>
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #4a90e2, #9013fe);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 0;
+    }
+    h1 { color: white; margin-bottom: 20px; }
+    form {
+      background: white;
+      padding: 25px 35px;
+      border-radius: 15px;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+      width: 90%;
+      max-width: 600px;
+    }
+    label { display: block; margin-top: 12px; font-weight: 500; }
+    input, select {
+      width: 100%; padding: 10px; margin-top: 6px;
+      border: 1px solid #ccc; border-radius: 8px; font-size: 15px;
+    }
+    button {
+      width: 100%; background: #4a90e2; color: white;
+      border: none; padding: 12px; border-radius: 8px;
+      font-size: 16px; margin-top: 20px; cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover { background: #357ABD; }
+    #result {
+      margin-top: 25px; background: white; padding: 15px;
+      border-radius: 10px; font-size: 18px; text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      width: 90%; max-width: 600px;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h1>🚘 Vehicle Price Prediction</h1>
+
+  <form id="vehicleForm" action="/model" method="POST">
+    <label for="vehicleType">Vehicle Type:</label>
+    <select id="vehicleType" name="Vehicle_Type" required>
+      <option value="">Select Vehicle Type</option>
+      <option value="Activa">Activa</option>
+      <option value="Scooter">Scooter</option>
+      <option value="Bike">Bike</option>
+      <option value="Car">Car</option>
+      <option value="Truck">Truck</option>
+      <option value="Bus">Bus</option>
+    </select>
+
+    <label for="state">State:</label>
+    <select id="state" name="State" required>
+        <option value="">Select State</option>
+    </select>
+
+    <!-- CITY -->
+    <label for="city">City:</label>
+    <select id="city" name="City" required>
+        <option value="">Select City</option>
+    </select>
+
+    <!-- Brand -->
+    <label for="brand">Brand:</label>
+    <select id="brand" name="Brand" required>
+      <option value="">Select Brand</option>
+    </select>
+
+    <label for="model">Model:</label>
+    <select id="model" name="Model" required>
+      <option value="">Select Model</option>
+    </select>
+
+    <!-- Fuel Type -->
+    <div id="fuelDiv">
+      <label for="fuel">Fuel Type:</label>
+      <select id="fuel" name="Fuel_Type">
+        <option>Petrol</option>
+        <option>Diesel</option>
+        <option>CNG</option>
+        <option>Electric</option>
+        <option>Hybrid</option>
+      </select>
+    </div>
+
+    <!-- Transmission -->
+    <div id="transmissionDiv">
+      <label for="transmission">Transmission:</label>
+      <select id="transmission" name="Transmission">
+        <option>Manual</option>
+        <option>Automatic</option>
+      </select>
+    </div>
+
+    <!-- Purchase Year -->
+    <label for="year">Purchase Year:</label>
+    <input type="number" id="year" name="Year" required>
+
+    <!-- Engine -->
+    <div id="engineDiv">
+      <label for="engine">Engine CC:</label>
+      <input type="number" id="engine" name="Engine_Size">
+    </div>
+
+    <!-- Mileage -->
+    <div id="mileageDiv">
+      <label for="mileage">Mileage (km/l):</label>
+      <input type="number" id="mileage" name="Mileage" step="0.1">
+    </div>
+
+    <!-- Power -->
+    <div id="powerDiv">
+      <label for="power">Power (bhp):</label>
+      <input type="number" id="power" name="Power" step="0.1">
+    </div>
+
+    <!-- Seats -->
+    <label for="seats">Seats:</label>
+    <select id="seats" name="Seats" required>
+      <option value="">Select Seats</option>
+      <option value="2">2</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+      <option value="7">7</option>
+      <option value="20">20</option>
+    </select>
+
+    <button type="submit">Predict Price</button>
+  </form>
+
+  <div id="result">
+        {% if predicted_price %}
+            <b>Predicted Car Price:</b> ₹{{ predicted_price }}
+        {% endif %}
+    </div>
+  <script>
+  const vehicles = {
+    "car": {
+        "Maruti Suzuki": [
+            "Swift", "Baleno", "Dzire", "Brezza", "Ertiga", "Fronx", "WagonR", "Alto", "Celerio"
+        ],
+        "Hyundai": [
+            "i20", "Grand i10 Nios", "Creta", "Venue", "Verna", "Tucson", "Alcazar"
+        ],
+        "Tata Motors": [
+            "Nexon", "Harrier", "Safari", "Altroz", "Punch", "Tiago", "Tigor"
+        ],
+        "Mahindra": [
+            "XUV300", "XUV700", "Scorpio-N", "Bolero", "Thar", "Marazzo"
+        ],
+        "Toyota": [
+            "Fortuner", "Innova Crysta", "Glanza", "Urban Cruiser Hyryder", "Camry", "Vellfire"
+        ],
+        "Honda": [
+            "City", "Amaze", "WR-V", "Elevate"
+        ],
+        "Kia": [
+            "Seltos", "Sonet", "Carens", "EV6"
+        ],
+        "MG": [
+            "Hector", "Astor", "Gloster", "ZS EV"
+        ],
+        "Volkswagen": [
+            "Polo", "Virtus", "Taigun"
+        ],
+        "Skoda": [
+            "Slavia", "Kushaq", "Superb", "Octavia"
+        ]
+    },
+
+    "bike": {
+        "Hero": [
+            "Splendor Plus", "HF Deluxe", "Passion Pro", "Glamour", "Xpulse 200", "Xtreme 160R"
+        ],
+        "Honda": [
+            "Shine", "SP 125", "Unicorn", "Hornet 2.0", "CB350", "CBR 650R"
+        ],
+        "Bajaj": [
+            "Pulsar 150", "Pulsar NS200", "Dominar 400", "Platina 110", "Avenger Cruise 220"
+        ],
+        "TVS": [
+            "Apache RTR 160", "Apache RR310", "Raider 125", "Star City Plus"
+        ],
+        "Yamaha": [
+            "FZ-S Fi", "MT-15", "R15 V4", "Fascino 125", "Aerox 155"
+        ],
+        "Royal Enfield": [
+            "Classic 350", "Bullet 350", "Hunter 350", "Meteor 350", "Himalayan", "Interceptor 650"
+        ],
+        "Suzuki": [
+            "Gixxer SF", "V-Strom SX", "Intruder"
+        ]
+    },
+
+    "scooter": {
+        "TVS": [
+            "Jupiter", "NTorq 125", "Scooty Pep Plus", "iQube Electric"
+        ],
+        "Hero": [
+            "Maestro Edge", "Pleasure+", "Destini 125", "Xoom"
+        ],
+        "Suzuki": [
+            "Access 125", "Burgman Street"
+        ],
+        "Yamaha": [
+            "Fascino 125", "RayZR 125"
+        ],
+        "Piaggio": [
+            "Vespa ZX", "Vespa VXL", "Aprilia SR 160", "Aprilia SXR 125"
+        ],
+        "Ather": [
+            "450S", "450X"
+        ],
+        "Ola Electric": [
+            "S1 Air", "S1 Pro", "S1X"
+        ],
+        "Okinawa": [
+            "PraisePro", "Lite", "IPraise+", "Ridge+"
+        ]
+    },
+
+    "activa": {
+        "Honda": [
+            "Activa 6G", "Activa 125", "Activa Smart", "Activa Premium", "Activa Limited Edition"
+        ]
+    },
+
+    "bus": {
+        "Tata Motors": [
+            "Starbus", "Cityride", "LP 410", "LP 912"
+        ],
+        "Ashok Leyland": [
+            "Viking", "Cheetah", "Lynx", "JanBus"
+        ],
+        "Volvo": [
+            "9400XL", "9600", "7900 Electric"
+        ],
+        "Eicher": [
+            "Skyline Pro", "Starline", "12M Intercity"
+        ],
+        "BharatBenz": [
+            "Staff Bus", "School Bus", "Intercity Coach"
+        ]
+    },
+
+    "truck": {
+        "Tata Motors": [
+            "Signa 4018", "LPT 2818", "Ultra 1918", "Prima 5530"
+        ],
+        "Ashok Leyland": [
+            "Ecomet 1615", "Boss 1215", "Captain 2832", "Dost"
+        ],
+        "Eicher": [
+            "Pro 3015", "Pro 2110", "Pro 8049", "Pro 6040"
+        ],
+        "Mahindra": [
+            "Blazo X", "Furio", "Jayo", "Optimo"
+        ],
+        "BharatBenz": [
+            "1215R", "1617R", "2823R", "3528C"
+        ],
+        "Volvo": [
+            "FMX 440", "FM 400", "FH 520"
+        ]
+    }
+};
+
+  const stateCityMap = {
+    "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Tirupati"],
+    "Arunachal Pradesh": ["Itanagar", "Tawang", "Ziro", "Pasighat", "Bomdila"],
+    "Assam": ["Guwahati", "Silchar", "Dibrugarh", "Tezpur", "North Lakhimpur"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga"],
+    "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Rajnandgaon"],
+    "Goa": ["Panaji", "Margao", "Vasco-da-Gama", "Mapusa", "Ponda"],
+    "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar"],
+    "Haryana": ["Gurgaon", "Faridabad", "Panipat", "Sonipat", "Ambala"],
+    "Himachal Pradesh": ["Shimla", "Manali", "Dharamshala", "Solan", "Mandi"],
+    "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Hazaribagh"],
+    "Karnataka": ["Bengaluru", "Mysuru", "Mangalore", "Hubli", "Belgaum"],
+    "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode", "Thrissur", "Alappuzha"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior", "Jabalpur", "Ujjain"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane"],
+    "Manipur": ["Imphal", "Thoubal", "Churachandpur", "Kakching", "Senapati"],
+    "Meghalaya": ["Shillong", "Tura", "Nongpoh", "Jowai", "Baghmara"],
+    "Mizoram": ["Aizawl", "Lunglei", "Champhai", "Serchhip", "Mamit"],
+    "Nagaland": ["Kohima", "Dimapur", "Mokokchung", "Tuensang", "Kiphire"],
+    "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Puri", "Sambalpur"],
+    "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda"],
+    "Rajasthan": ["Jaipur", "Udaipur", "Jodhpur", "Kota", "Ajmer"],
+    "Sikkim": ["Gangtok", "Namchi", "Gyalshing", "Mangan", "Singphu"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli"],
+    "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Karimnagar", "Mahbubnagar"],
+    "Tripura": ["Agartala", "Udaipur", "Kumarghat", "Amarpur", "Khowai"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi", "Agra", "Noida"],
+    "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Kashipur"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Siliguri", "Asansol"],
+    "Delhi": ["New Delhi", "Dwarka", "Rohini", "Saket", "Karol Bagh"]
+  };
+
+  const vehicleType = document.getElementById("vehicleType");
+  const brandSelect = document.getElementById("brand");
+  const modelSelect = document.getElementById("model");
+  const seats = document.getElementById("seats");
+  const stateSelect = document.getElementById("state");
+  const citySelect = document.getElementById("city");
+  const transmissionSelect = document.getElementById("transmission");
+
+  // Populate States
+  Object.keys(stateCityMap).forEach(state => {
+    const opt = document.createElement("option");
+    opt.value = state;
+    opt.textContent = state;
+    stateSelect.appendChild(opt);
+  });
+
+  // State → City
+  stateSelect.addEventListener("change", function () {
+    const selectedState = this.value;
+    citySelect.innerHTML = '<option value="">Select City</option>';
+    if (selectedState && stateCityMap[selectedState]) {
+      stateCityMap[selectedState].forEach(city => {
+        const opt = document.createElement("option");
+        opt.value = city;
+        opt.textContent = city;
+        citySelect.appendChild(opt);
+      });
+    }
+  });
+
+  // Vehicle → Brand
+  vehicleType.addEventListener("change", function () {
+    const type = this.value.toLowerCase();
+    brandSelect.innerHTML = '<option value="">Select Brand</option>';
+    modelSelect.innerHTML = '<option value="">Select Model</option>';
+    if (vehicles[type]) {
+      Object.keys(vehicles[type]).forEach(brand => {
+        const opt = document.createElement("option");
+        opt.value = brand;
+        opt.textContent = brand;
+        brandSelect.appendChild(opt);
+      });
+    }
+
+    // Transmission Logic
+    if (this.value === "Car") {
+      transmissionSelect.innerHTML = `
+        <option value="Manual">Manual</option>
+        <option value="Automatic">Automatic</option>`;
+    } else {
+      transmissionSelect.innerHTML = `<option value="Manual" selected>Manual</option>`;
+    }
+
+    // Seats Logic
+    if (["Activa", "Scooter", "Bike"].includes(this.value)) {
+      seats.innerHTML = `<option value="2" selected>2</option>`;
+    } else if (this.value === "Car") {
+      seats.innerHTML = `
+        <option value="4">4</option>
+        <option value="5" selected>5</option>
+        <option value="7">7</option>`;
+    } else if (this.value === "Truck") {
+      seats.innerHTML = `
+        <option value="2">2</option>
+        <option value="3">3</option>`;
+    } else if (this.value === "Bus") {
+      seats.innerHTML = `
+        <option value="20">20</option>
+        <option value="30">30</option>
+        <option value="40">40</option>`;
+    } else {
+      seats.innerHTML = `<option value="2" selected>2</option>`;
+    }
+  });
+
+  // Brand → Model
+  brandSelect.addEventListener("change", function () {
+    const type = vehicleType.value.toLowerCase();
+    const brand = this.value;
+    modelSelect.innerHTML = '<option value="">Select Model</option>';
+    if (vehicles[type] && vehicles[type][brand]) {
+      vehicles[type][brand].forEach(model => {
+        const opt = document.createElement("option");
+        opt.value = model;
+        opt.textContent = model;
+        modelSelect.appendChild(opt);
+      });
+    }
+  });
+</script>
+</body>
+</html>
