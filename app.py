@@ -50,7 +50,7 @@ def model_type():
         vehicle=""
         for i in col:
             if i=='Vehicle_Type':
-                vehicle=request.form.get(f'{i}')
+                vehicle=request.form.get(f'{i}').strip().lower()
             else:
                 if i in int_column:
                     val=int(request.form.get(f'{i}'))
